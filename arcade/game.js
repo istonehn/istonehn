@@ -51,7 +51,7 @@
     ui.start.textContent = '↻ REINICIAR CAMPAÑA';
     hud();
   }
-  function startCampaign() { score = 0; lives = 3; startLevel(1); }
+  function startCampaign() { ui.start.blur?.(); score = 0; lives = 3; startLevel(1); }
   function finish(won) {
     mode = won ? 'won' : 'over';
     rememberBest();
