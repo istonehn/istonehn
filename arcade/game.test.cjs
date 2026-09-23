@@ -70,7 +70,7 @@ test('el laberinto tiene un camino desde el inicio hasta el jefe', () => {
   assert.ok(seen.has('1,7'), 'se puede llegar al pasillo del jefe');
 });
 
-test('la primera cruz da una cuarta vida y las siguientes solo puntos', () => {
+test('las cruces reponen vidas perdidas, dan puntos al máximo y respetan el límite por nivel', () => {
   const listeners = {};
   const elements = Object.fromEntries(['stage', 'timer', 'progress', 'score', 'lives', 'alert', 'start', 'pad'].map(id => [id, {
     textContent: '', hidden: false, addEventListener() {}, querySelectorAll() { return []; }, blur() {}
@@ -80,7 +80,7 @@ test('la primera cruz da una cuarta vida y las siguientes solo puntos', () => {
   const math = Object.create(Math);
   math.random = () => .5;
   const instrumented = source.replace('hud(); requestAnimationFrame(frame);',
-    'globalThis.checkLife = { startLevel, hurt, updateExtraLife, get lives() { return lives; }, get score() { return score; }, get extraLife() { return extraLife; }, moveAway() { player.x = 16; }, moveToDrop() { player.x = extraLife.x; player.y = extraLife.y; }, allowDamage() { invulnerable = 0; } }; hud(); requestAnimationFrame(frame);');
+    'globalThis.checkLife = { startLevel, hurt, updateExtraLife, get lives() { return lives; }, get score() { return score; }, get extraLife() { return extraLife; }, get lifeDropsSpawned() { return lifeDropsSpawned; }, moveAway() { player.x = 16; }, moveToDrop() { player.x = extraLife.x; player.y = extraLife.y; }, allowDamage() { invulnerable = 0; } }; hud(); requestAnimationFrame(frame);');
   const sandbox = {
     document: { querySelector() { return canvas; }, getElementById(id) { return elements[id]; }, addEventListener(type, fn) { listeners[type] = fn; } },
     window: { addEventListener() {} }, requestAnimationFrame() {},
@@ -88,23 +88,34 @@ test('la primera cruz da una cuarta vida y las siguientes solo puntos', () => {
   };
   vm.runInNewContext(instrumented, sandbox);
   const game = sandbox.checkLife;
+  function collect() {
+    game.moveAway();
+    for (let i = 0; i < 60 && !game.extraLife; i++) game.updateExtraLife(1);
+    assert.ok(game.extraLife, 'debe aparecer una cruz');
+    game.moveToDrop(); game.updateExtraLife(.016);
+  }
   game.startLevel(1);
-  game.moveAway();
-  for (let i = 0; i < 30 && !game.extraLife; i++) game.updateExtraLife(1);
-  assert.ok(game.extraLife, 'debe aparecer incluso con las tres vidas iniciales');
-  game.moveToDrop(); game.updateExtraLife(.016);
+  collect();
   assert.equal(game.lives, 4);
-  assert.equal(game.score, 25);
-  assert.equal(game.extraLife, null);
-  game.moveAway();
-  for (let i = 0; i < 50 && !game.extraLife; i++) game.updateExtraLife(1);
-  assert.ok(game.extraLife, 'las cruces posteriores siguen apareciendo');
-  game.moveToDrop(); game.updateExtraLife(.016);
+  assert.equal(game.score, 0);
+  game.allowDamage(); game.hurt();
+  assert.equal(game.lives, 3);
+  collect();
   assert.equal(game.lives, 4);
-  assert.equal(game.score, 50, 'la segunda cruz da puntos');
+  assert.equal(game.score, 0, 'la segunda cruz repone la vida perdida');
+  collect();
+  assert.equal(game.lives, 4);
+  assert.equal(game.score, 25, 'con todas las vidas, la cruz da puntos');
+  assert.equal(game.lifeDropsSpawned, 3);
+  game.moveAway();
+  for (let i = 0; i < 100; i++) game.updateExtraLife(1);
+  assert.equal(game.extraLife, null, 'no aparece una cuarta cruz en órbita');
   game.startLevel(3);
-  for (let i = 0; i < 30 && !game.extraLife; i++) game.updateExtraLife(1);
-  assert.ok(game.extraLife, 'también debe aparecer en una casilla accesible del laberinto');
+  collect(); collect();
+  assert.equal(game.lifeDropsSpawned, 2);
+  game.moveAway();
+  for (let i = 0; i < 100; i++) game.updateExtraLife(1);
+  assert.equal(game.extraLife, null, 'no aparece una tercera cruz en el laberinto');
 });
 
 test('las dunas agrietadas se rompen con un disparo y las normales resisten', () => {
@@ -140,7 +151,7 @@ test('el service worker guarda el juego y sirve la página sin conexión', async
   };
   const caches = {
     async open() { return cache; },
-    async keys() { return ['star-run-v5']; },
+    async keys() { return ['star-run-v6']; },
     async delete() { return true; },
     async match(request) { return files.get(request.url || request); }
   };
