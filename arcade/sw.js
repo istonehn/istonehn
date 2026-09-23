@@ -1,4 +1,4 @@
-const CACHE = 'star-run-v4';
+const CACHE = 'star-run-v5';
 const ASSETS = ['./', './index.html', './game.js'];
 const SCOPE = new URL(self.registration.scope).pathname;
 

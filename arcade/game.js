@@ -28,7 +28,7 @@
   let mode = 'ready', level = 1, score = 0, lives = 3, progress = 0, best = 0;
   let player = { x: W / 2, y: H - 38, facing: { x: 0, y: -1 } };
   let enemies = [], obstacles = [], aliens = [], shots = [], bossShots = [], particles = [];
-  let extraLife = null, lifeDropClock = 0;
+  let extraLife = null, lifeDropClock = 0, extraLifeClaimed = false;
   let boss = { x: 250, y: 48, hp: 10, maxHp: 10, t: 0 }, spawnClock = 0, fireClock = 0, bossClock = 0, enemyFireClock = 0, alienClock = 0;
   let invulnerable = 0, transitionClock = 0, touchX = null, touchY = null, lastFrame = 0, elapsed = 0, lastHudSecond = -1, lastDesertAlienAt = -20;
   try { best = Number(localStorage.getItem('star-run-best')) || 0; } catch (_) {}
@@ -39,8 +39,8 @@
     ui.timer.textContent = `TIEMPO ${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
     ui.progress.textContent = level === 3 ? `JEFE ${boss.hp}/${boss.maxHp}` : level === 2 ? `DUNAS ${progress}` : `NAVES ${progress}`;
     ui.score.textContent = `SCORE ${String(score).padStart(4, '0')}`;
-    ui.lives.textContent = `VIDAS ${lives}/3`;
-    ui.alert.textContent = level === 1 && attackWave() ? 'FUEGO: BUSCA COBERTURA' : level === 2 ? 'ESQUIVA LAS DUNAS' : level === 3 ? 'ALIENS EN EL CENTRO' : 'ZONA SEGURA';
+    ui.lives.textContent = `VIDAS ${lives}/4`;
+    ui.alert.textContent = extraLife ? extraLifeClaimed ? 'CRUZ ROSA: PUNTOS' : 'CRUZ ROSA: VIDA EXTRA' : level === 1 && attackWave() ? 'FUEGO: BUSCA COBERTURA' : level === 2 ? 'ESQUIVA LAS DUNAS' : level === 3 ? 'ALIENS EN EL CENTRO' : 'ZONA SEGURA';
   }
   function attackWave() { return elapsed >= 25 && (elapsed - 25) % 28 < 9; }
   function rememberBest() {
@@ -51,7 +51,7 @@
   function startLevel(next) {
     level = next; mode = 'playing'; progress = 0; elapsed = 0; lastHudSecond = -1;
     enemies = []; obstacles = []; aliens = []; shots = []; bossShots = []; particles = [];
-    extraLife = null; lifeDropClock = 18 + Math.random() * 14;
+    extraLife = null; lifeDropClock = 12 + Math.random() * 6;
     spawnClock = .5; fireClock = 0; bossClock = 1.4; enemyFireClock = .6; alienClock = 5; invulnerable = 1; lastDesertAlienAt = -20;
     player = next === 3 ? { x: 48, y: 432, facing: { x: 0, y: -1 } } : { x: W / 2, y: H - 38, facing: { x: 0, y: -1 } };
     boss = { x: 250, y: 48, hp: 10, maxHp: 10, t: 0 };
@@ -59,7 +59,7 @@
     ui.start.textContent = 'REINICIAR';
     hud();
   }
-  function startCampaign() { ui.start.blur?.(); score = 0; lives = 3; startLevel(1); }
+  function startCampaign() { ui.start.blur?.(); score = 0; lives = 3; extraLifeClaimed = false; startLevel(1); }
   function finish(won) {
     mode = won ? 'won' : 'over';
     rememberBest();
@@ -84,7 +84,7 @@
   }
   function updateExtraLife(dt) {
     lifeDropClock -= dt;
-    if (!extraLife && lives < 3 && lifeDropClock <= 0) {
+    if (!extraLife && lifeDropClock <= 0) {
       if (level === 3) {
         const options = [];
         for (let row = 1; row < maze.length - 1; row++) for (let col = 1; col < 9; col++) {
@@ -93,17 +93,19 @@
           if (canMove(x, y) && distance > 24 && distance < 100) options.push({ x, y });
         }
         const spot = options[Math.floor(Math.random() * options.length)];
-        if (spot) extraLife = { ...spot, ttl: 12 };
-      } else extraLife = { x: 24 + Math.random() * (W - 48), y: 282, ttl: 12 };
-      lifeDropClock = 26 + Math.random() * 18;
+        if (spot) extraLife = { ...spot, ttl: 20 };
+      } else extraLife = { x: 24 + Math.random() * (W - 48), y: 282, ttl: 20 };
+      lifeDropClock = 22 + Math.random() * 10;
+      if (extraLife) hud();
     }
     if (!extraLife) return;
     extraLife.ttl -= dt;
-    if (level !== 3) extraLife.y = Math.min(H - 36, extraLife.y + 42 * dt);
+    if (level !== 3) extraLife.y = Math.min(H - 36, extraLife.y + 35 * dt);
     if (collide(extraLife, player, 18)) {
-      lives = Math.min(3, lives + 1); score += 25;
+      if (!extraLifeClaimed) { lives = Math.min(4, lives + 1); extraLifeClaimed = true; }
+      score += 25;
       burst(extraLife.x, extraLife.y, '#f18ca0'); extraLife = null; hud();
-    } else if (extraLife.ttl <= 0) extraLife = null;
+    } else if (extraLife.ttl <= 0) { extraLife = null; hud(); }
   }
   function wall(x, y) {
     const col = Math.floor(x / CELL), row = Math.floor(y / CELL);
@@ -169,12 +171,17 @@
     if (spawnClock <= 0) {
       const lane = Math.floor(Math.random() * 4);
       const hiddenAlien = elapsed - lastDesertAlienAt >= 18 && aliens.length < 2 && Math.random() < .35;
-      obstacles.push({ x: 40 + lane * 80, y: -24, speed: 105 + elapsed * 1.1, w: 56 + Math.random() * 14, hiddenAlien, emerged: false });
+      obstacles.push({ x: 40 + lane * 80, y: -24, speed: 105 + elapsed * 1.1, w: 56 + Math.random() * 14, hiddenAlien, emerged: false, breakable: !hiddenAlien && Math.random() < .4 });
       if (hiddenAlien) lastDesertAlienAt = elapsed;
       spawnClock = Math.max(.48, 1.05 - elapsed * .0045);
     }
     for (const obstacle of obstacles) {
       obstacle.y += obstacle.speed * dt;
+      for (const shot of shots) if (obstacle.breakable && !obstacle.dead && !shot.dead && Math.abs(shot.x - obstacle.x) < obstacle.w / 2 && Math.abs(shot.y - obstacle.y) < 16) {
+        obstacle.dead = shot.dead = true; progress++; score += 15;
+        burst(obstacle.x, obstacle.y, '#f1c46e'); hud();
+      }
+      if (obstacle.dead) continue;
       if (obstacle.hiddenAlien && !obstacle.emerged && obstacle.y > 170) {
         obstacle.emerged = true;
         aliens.push({ x: obstacle.x, y: obstacle.y, speed: 75, fired: false });
@@ -308,8 +315,13 @@
       pixel(c.x, c.y, c.w, c.h, '#2a6775'); pixel(c.x + 4, c.y + 3, c.w - 8, 5, '#66c8c5');
     }
     if (level === 2) for (const obstacle of obstacles) {
-      pixel(obstacle.x - obstacle.w / 2, obstacle.y - 6, obstacle.w, 20, '#b46b46');
+      pixel(obstacle.x - obstacle.w / 2, obstacle.y - 6, obstacle.w, 20, obstacle.breakable ? '#d09257' : '#b46b46');
       pixel(obstacle.x - obstacle.w / 3, obstacle.y - 12, obstacle.w * 2 / 3, 8, '#e7a965');
+      if (obstacle.breakable) {
+        pixel(obstacle.x - 4, obstacle.y - 6, 8, 4, '#fff0ae');
+        pixel(obstacle.x + 1, obstacle.y - 2, 4, 7, '#fff0ae');
+        pixel(obstacle.x - 6, obstacle.y + 4, 8, 4, '#fff0ae');
+      }
       if (obstacle.hiddenAlien && !obstacle.emerged) pixel(obstacle.x - 3, obstacle.y - 8, 6, 3, '#b5e878');
     }
     if (level === 3) {

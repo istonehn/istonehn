@@ -70,7 +70,7 @@ test('el laberinto tiene un camino desde el inicio hasta el jefe', () => {
   assert.ok(seen.has('1,7'), 'se puede llegar al pasillo del jefe');
 });
 
-test('la vida extra aparece al perder una vida y nunca supera el máximo', () => {
+test('la primera cruz da una cuarta vida y las siguientes solo puntos', () => {
   const listeners = {};
   const elements = Object.fromEntries(['stage', 'timer', 'progress', 'score', 'lives', 'alert', 'start', 'pad'].map(id => [id, {
     textContent: '', hidden: false, addEventListener() {}, querySelectorAll() { return []; }, blur() {}
@@ -80,7 +80,7 @@ test('la vida extra aparece al perder una vida y nunca supera el máximo', () =>
   const math = Object.create(Math);
   math.random = () => .5;
   const instrumented = source.replace('hud(); requestAnimationFrame(frame);',
-    'globalThis.checkLife = { startLevel, hurt, updateExtraLife, get lives() { return lives; }, get extraLife() { return extraLife; }, moveAway() { player.x = 16; }, moveToDrop() { player.x = extraLife.x; player.y = extraLife.y; }, allowDamage() { invulnerable = 0; } }; hud(); requestAnimationFrame(frame);');
+    'globalThis.checkLife = { startLevel, hurt, updateExtraLife, get lives() { return lives; }, get score() { return score; }, get extraLife() { return extraLife; }, moveAway() { player.x = 16; }, moveToDrop() { player.x = extraLife.x; player.y = extraLife.y; }, allowDamage() { invulnerable = 0; } }; hud(); requestAnimationFrame(frame);');
   const sandbox = {
     document: { querySelector() { return canvas; }, getElementById(id) { return elements[id]; }, addEventListener(type, fn) { listeners[type] = fn; } },
     window: { addEventListener() {} }, requestAnimationFrame() {},
@@ -89,20 +89,45 @@ test('la vida extra aparece al perder una vida y nunca supera el máximo', () =>
   vm.runInNewContext(instrumented, sandbox);
   const game = sandbox.checkLife;
   game.startLevel(1);
-  game.allowDamage(); game.hurt();
-  assert.equal(game.lives, 2);
   game.moveAway();
-  for (let i = 0; i < 25; i++) game.updateExtraLife(1);
-  assert.ok(game.extraLife, 'debe aparecer una vida recuperable');
+  for (let i = 0; i < 30 && !game.extraLife; i++) game.updateExtraLife(1);
+  assert.ok(game.extraLife, 'debe aparecer incluso con las tres vidas iniciales');
   game.moveToDrop(); game.updateExtraLife(.016);
-  assert.equal(game.lives, 3);
+  assert.equal(game.lives, 4);
+  assert.equal(game.score, 25);
   assert.equal(game.extraLife, null);
-  game.updateExtraLife(120);
-  assert.equal(game.extraLife, null, 'no aparecen vidas si el contador está completo');
+  game.moveAway();
+  for (let i = 0; i < 50 && !game.extraLife; i++) game.updateExtraLife(1);
+  assert.ok(game.extraLife, 'las cruces posteriores siguen apareciendo');
+  game.moveToDrop(); game.updateExtraLife(.016);
+  assert.equal(game.lives, 4);
+  assert.equal(game.score, 50, 'la segunda cruz da puntos');
   game.startLevel(3);
-  game.allowDamage(); game.hurt();
-  for (let i = 0; i < 25; i++) game.updateExtraLife(1);
+  for (let i = 0; i < 30 && !game.extraLife; i++) game.updateExtraLife(1);
   assert.ok(game.extraLife, 'también debe aparecer en una casilla accesible del laberinto');
+});
+
+test('las dunas agrietadas se rompen con un disparo y las normales resisten', () => {
+  const elements = Object.fromEntries(['stage', 'timer', 'progress', 'score', 'lives', 'alert', 'start', 'pad'].map(id => [id, {
+    textContent: '', hidden: false, addEventListener() {}, querySelectorAll() { return []; }
+  }]));
+  const canvas = { width: 320, height: 480, getContext() { return {}; }, addEventListener() {} };
+  const instrumented = source.replace('hud(); requestAnimationFrame(frame);',
+    'globalThis.checkDunes = { startLevel, updateDesert, get score() { return score; }, get progress() { return progress; }, get obstacles() { return obstacles; }, addDune(breakable) { obstacles.push({ x: 80, y: 100, w: 60, speed: 0, breakable, hiddenAlien: false }); shots.push({ x: 80, y: 100, dead: false }); spawnClock = 100; } }; hud(); requestAnimationFrame(frame);');
+  const sandbox = {
+    document: { querySelector() { return canvas; }, getElementById(id) { return elements[id]; }, addEventListener() {} },
+    window: { addEventListener() {} }, requestAnimationFrame() {},
+    localStorage: { getItem() { return null; }, setItem() {} }
+  };
+  vm.runInNewContext(instrumented, sandbox);
+  const game = sandbox.checkDunes;
+  game.startLevel(2);
+  game.addDune(true); game.updateDesert(0);
+  assert.equal(game.obstacles.length, 0);
+  assert.equal(game.score, 15);
+  assert.equal(game.progress, 1);
+  game.addDune(false); game.updateDesert(0);
+  assert.equal(game.obstacles.length, 1);
 });
 
 test('el service worker guarda el juego y sirve la página sin conexión', async () => {
@@ -115,7 +140,7 @@ test('el service worker guarda el juego y sirve la página sin conexión', async
   };
   const caches = {
     async open() { return cache; },
-    async keys() { return ['star-run-v4']; },
+    async keys() { return ['star-run-v5']; },
     async delete() { return true; },
     async match(request) { return files.get(request.url || request); }
   };
