@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ISTONEHN // STAR RUN</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, Consolas, monospace; background: #070b18; color: #e7f7ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 18px; background: radial-gradient(circle at 50% 20%, #172a43, #070b18 65%); }
+    .shell { width: min(100%, 490px); border: 3px solid #56d9d3; padding: 12px; box-shadow: 0 0 0 5px #0c1729, 0 0 32px #1d838877; background: #0c1425; }
+    header { display: flex; justify-content: space-between; gap: 8px; align-items: end; margin-bottom: 10px; }
+    h1 { margin: 0; font-size: clamp(19px, 5vw, 26px); letter-spacing: 2px; color: #f1c46e; text-shadow: 3px 3px #705028; }
+    .eyebrow, .hint { color: #86a8b8; font-size: 11px; letter-spacing: 1px; }
+    .hud { display: flex; justify-content: space-between; margin: 8px 0; color: #67e7dd; font-size: 12px; }
+    canvas { display: block; width: 100%; aspect-ratio: 2 / 3; border: 2px solid #304e65; background: #07101f; image-rendering: pixelated; touch-action: none; }
+    .controls { display: flex; gap: 9px; margin-top: 12px; }
+    button { flex: 1; min-height: 45px; border: 2px solid #f1c46e; color: #0a1020; background: #f1c46e; font: bold 14px ui-monospace, Consolas, monospace; letter-spacing: 1px; cursor: pointer; box-shadow: 4px 4px #765326; }
+    button:hover, button:focus-visible { background: #ffe3a0; outline: 2px solid #60e4dc; outline-offset: 2px; }
+    .hint { line-height: 1.5; margin: 15px 2px 0; text-align: center; }
+    a { color: #67e7dd; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div><div class="eyebrow">ISTONEHN // ARCADE 01</div><h1>STAR RUN</h1></div><div class="eyebrow">PIXEL SPACE</div></header>
+    <div class="hud" aria-live="polite"><span id="score">SCORE 0000</span><span id="lives">VIDAS ♥♥♥</span><span id="best">RÉCORD 0000</span></div>
+    <canvas id="game" width="320" height="480" aria-label="Juego de naves: esquiva enemigos y dispárales"></canvas>
+    <div class="controls"><button id="start" type="button">▶ INICIAR</button></div>
+    <p class="hint">← → o A D para volar · ESPACIO para disparar<br>En móvil: arrastra la nave; dispara automáticamente.</p>
+  </main>
+  <script>
+    (() => {
+      const canvas = document.querySelector('#game');
+      const ctx = canvas.getContext('2d');
+      const scoreEl = document.querySelector('#score');
+      const livesEl = document.querySelector('#lives');
+      const bestEl = document.querySelector('#best');
+      const startButton = document.querySelector('#start');
+      const W = canvas.width, H = canvas.height;
+      let best = 0;
+      try { best = Number(localStorage.getItem('star-run-best')) || 0; } catch (_) {}
+      let state = 'ready', score = 0, lives = 3, shipX = W / 2, enemies = [], shots = [], particles = [];
+      let spawnClock = 0, fireClock = 0, invulnerable = 0, lastFrame = 0, touchX = null;
+      const keys = new Set();
+      const stars = Array.from({ length: 48 }, (_, i) => ({ x: (i * 73) % W, y: (i * 137) % H, speed: 14 + (i % 4) * 13, size: i % 7 === 0 ? 2 : 1 }));
+
+      function reset() {
+        state = 'playing'; score = 0; lives = 3; shipX = W / 2;
+        enemies = []; shots = []; particles = [];
+        spawnClock = 0; fireClock = 0; invulnerable = 0;
+        startButton.textContent = '↻ REINICIAR';
+        updateHud();
+      }
+      function updateHud() {
+        scoreEl.textContent = `SCORE ${String(score).padStart(4, '0')}`;
+        livesEl.textContent = `VIDAS ${'♥'.repeat(lives)}${'·'.repeat(3 - lives)}`;
+        bestEl.textContent = `RÉCORD ${String(best).padStart(4, '0')}`;
+      }
+      function burst(x, y, color) {
+        for (let i = 0; i < 9; i++) particles.push({ x, y, vx: (Math.random() - .5) * 110, vy: (Math.random() - .5) * 110, life: .35, color });
+      }
+      function hit(a, b, radius) { return Math.abs(a.x - b.x) < radius && Math.abs(a.y - b.y) < radius; }
+      function endGame() {
+        state = 'over';
+        if (score > best) {
+          best = score;
+          try { localStorage.setItem('star-run-best', String(best)); } catch (_) {}
+        }
+        updateHud();
+        startButton.textContent = '▶ JUGAR OTRA VEZ';
+      }
+      function update(dt) {
+        for (const star of stars) star.y = (star.y + star.speed * dt) % H;
+        particles = particles.filter(p => (p.life -= dt) > 0);
+        for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; }
+        if (state !== 'playing') return;
+        if (touchX !== null) shipX += (touchX - shipX) * Math.min(1, dt * 12);
+        else shipX += ((keys.has('ArrowRight') || keys.has('d') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('a') ? 1 : 0)) * 210 * dt;
+        shipX = Math.max(16, Math.min(W - 16, shipX));
+        invulnerable = Math.max(0, invulnerable - dt);
+        fireClock -= dt;
+        if ((keys.has(' ') || touchX !== null) && fireClock <= 0) { shots.push({ x: shipX, y: H - 50 }); fireClock = .18; }
+        spawnClock -= dt;
+        if (spawnClock <= 0) {
+          enemies.push({ x: 15 + Math.random() * (W - 30), y: -15, speed: 65 + Math.min(score * .35, 100), drift: Math.random() * 2 - 1 });
+          spawnClock = Math.max(.35, .9 - score * .003);
+        }
+        for (const shot of shots) shot.y -= 340 * dt;
+        for (const enemy of enemies) { enemy.y += enemy.speed * dt; enemy.x += enemy.drift * 16 * dt; }
+        for (const shot of shots) for (const enemy of enemies) {
+          if (!shot.dead && !enemy.dead && hit(shot, enemy, 15)) {
+            shot.dead = enemy.dead = true; score += 10; burst(enemy.x, enemy.y, '#f1c46e'); updateHud();
+          }
+        }
+        for (const enemy of enemies) {
+          if (!enemy.dead && invulnerable <= 0 && hit({ x: shipX, y: H - 38 }, enemy, 18)) {
+            enemy.dead = true; lives--; invulnerable = 1.2; burst(shipX, H - 38, '#67e7dd'); updateHud();
+            if (lives === 0) endGame();
+          }
+          if (enemy.y > H + 16) enemy.dead = true;
+        }
+        shots = shots.filter(s => !s.dead && s.y > -10);
+        enemies = enemies.filter(e => !e.dead);
+      }
+      function pixelRect(x, y, w, h, color) { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+      function drawShip(x, y) {
+        pixelRect(x - 4, y - 16, 8, 8, '#e8f8ff');
+        pixelRect(x - 8, y - 8, 16, 10, '#60e2da');
+        pixelRect(x - 15, y - 2, 30, 8, '#2e9ea9');
+        pixelRect(x - 4, y + 6, 8, 8, '#f1c46e');
+      }
+      function draw() {
+        ctx.fillStyle = '#07101f'; ctx.fillRect(0, 0, W, H);
+        for (const star of stars) pixelRect(star.x, star.y, star.size, star.size, '#7eacbd');
+        for (const shot of shots) pixelRect(shot.x - 2, shot.y - 7, 4, 11, '#f1c46e');
+        for (const enemy of enemies) {
+          pixelRect(enemy.x - 12, enemy.y - 5, 24, 9, '#d27279');
+          pixelRect(enemy.x - 7, enemy.y - 11, 14, 6, '#f19983');
+          pixelRect(enemy.x - 16, enemy.y + 4, 8, 5, '#a84b67');
+          pixelRect(enemy.x + 8, enemy.y + 4, 8, 5, '#a84b67');
+        }
+        for (const p of particles) pixelRect(p.x, p.y, 3, 3, p.color);
+        if (state !== 'playing' || invulnerable === 0 || Math.floor(invulnerable * 10) % 2 === 0) drawShip(shipX, H - 38);
+        if (state !== 'playing') {
+          ctx.fillStyle = '#07101fdd'; ctx.fillRect(28, 172, W - 56, 120);
+          ctx.strokeStyle = '#56d9d3'; ctx.strokeRect(28, 172, W - 56, 120);
+          ctx.textAlign = 'center'; ctx.fillStyle = '#f1c46e'; ctx.font = 'bold 23px monospace';
+          ctx.fillText(state === 'ready' ? 'READY, PILOT?' : 'GAME OVER', W / 2, 220);
+          ctx.fillStyle = '#d2e9ee'; ctx.font = '13px monospace';
+          ctx.fillText(state === 'ready' ? 'Pulsa INICIAR' : `PUNTOS ${score}`, W / 2, 252);
+        }
+      }
+      function frame(time) {
+        const dt = Math.min((time - lastFrame) / 1000 || 0, .04); lastFrame = time;
+        update(dt); draw(); requestAnimationFrame(frame);
+      }
+      document.addEventListener('keydown', event => {
+        if (['ArrowLeft', 'ArrowRight', ' '].includes(event.key)) event.preventDefault();
+        keys.add(event.key.toLowerCase().startsWith('arrow') ? event.key : event.key.toLowerCase());
+        if ((event.key === 'Enter' || event.key === ' ') && state !== 'playing') reset();
+      });
+      document.addEventListener('keyup', event => keys.delete(event.key.toLowerCase().startsWith('arrow') ? event.key : event.key.toLowerCase()));
+      window.addEventListener('blur', () => keys.clear());
+      canvas.addEventListener('pointerdown', event => { canvas.setPointerCapture(event.pointerId); touchX = (event.clientX - canvas.getBoundingClientRect().left) * W / canvas.getBoundingClientRect().width; if (state !== 'playing') reset(); });
+      canvas.addEventListener('pointermove', event => { if (touchX !== null) touchX = (event.clientX - canvas.getBoundingClientRect().left) * W / canvas.getBoundingClientRect().width; });
+      for (const type of ['pointerup', 'pointercancel']) canvas.addEventListener(type, () => { touchX = null; });
+      startButton.addEventListener('click', reset);
+      updateHud(); requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
+
