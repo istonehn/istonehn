@@ -8,7 +8,7 @@ const source = fs.readFileSync(path.join(__dirname, 'game.js'), 'utf8');
 
 test('avanza de la órbita al desierto y luego al laberinto', () => {
   const listeners = {};
-  const elements = Object.fromEntries(['stage', 'progress', 'score', 'lives', 'start', 'pad'].map(id => [id, {
+  const elements = Object.fromEntries(['stage', 'timer', 'progress', 'score', 'lives', 'alert', 'start', 'pad'].map(id => [id, {
     textContent: '', hidden: false, addEventListener() {}, querySelectorAll() { return []; }
   }]));
   const context = { fillRect() {}, strokeRect() {}, fillText() {}, set fillStyle(_) {}, set strokeStyle(_) {}, set textAlign(_) {}, set font(_) {} };
@@ -24,17 +24,19 @@ test('avanza de la órbita al desierto y luego al laberinto', () => {
     Math: predictableMath
   });
   listeners.keydown({ key: ' ', preventDefault() {} });
-  let reachedDesert = false, reachedMaze = false;
+  listeners.keydown({ key: 'ArrowLeft', preventDefault() {} });
+  let reachedDesertAt = null, reachedMazeAt = null;
   let tick = 0;
-  for (; tick < 10000; tick++) {
+  for (; tick < 20000; tick++) {
     nextFrame(tick * 16);
-    reachedDesert ||= elements.stage.textContent.includes('DESIERTO');
-    reachedMaze ||= elements.stage.textContent.includes('LABERINTO');
-    if (reachedMaze) break;
+    if (tick === 42) listeners.keyup({ key: 'ArrowLeft' });
+    if (reachedDesertAt === null && elements.stage.textContent.includes('DESIERTO')) reachedDesertAt = tick * 16;
+    if (reachedMazeAt === null && elements.stage.textContent.includes('LABERINTO')) reachedMazeAt = tick * 16;
+    if (reachedMazeAt !== null) break;
   }
-  assert.ok(reachedDesert, 'debe llegar al nivel 2');
-  assert.ok(reachedMaze, 'debe llegar al nivel 3');
-  assert.match(elements.progress.textContent, /JEFE 6\/6/);
+  assert.ok(reachedDesertAt >= 120000, 'el primer nivel debe durar al menos dos minutos');
+  assert.ok(reachedMazeAt - reachedDesertAt >= 120000, 'el desierto debe durar al menos dos minutos');
+  assert.match(elements.progress.textContent, /JEFE 10\/10/);
   listeners.keyup({ key: ' ' });
   function move(key, frames) {
     listeners.keydown({ key, preventDefault() {} });
@@ -46,10 +48,10 @@ test('avanza de la órbita al desierto y luego al laberinto', () => {
   move('ArrowUp', 32);
   move('ArrowLeft', 32);
   move('ArrowUp', 32);
-  move('ArrowRight', 88);
+  move('ArrowRight', 32);
   listeners.keydown({ key: ' ', preventDefault() {} });
-  for (let i = 0; i < 400; i++) nextFrame(++tick * 16);
-  assert.match(elements.progress.textContent, /JEFE 0\/6/, 'el jefe debe poder ser derrotado');
+  for (let i = 0; i < 500; i++) nextFrame(++tick * 16);
+  assert.match(elements.progress.textContent, /JEFE 0\/10/, 'el jefe debe poder ser derrotado');
 });
 
 test('el laberinto tiene un camino desde el inicio hasta el jefe', () => {
@@ -66,5 +68,34 @@ test('el laberinto tiene un camino desde el inicio hasta el jefe', () => {
     }
   }
   assert.ok(seen.has('1,7'), 'se puede llegar al pasillo del jefe');
+});
+
+test('el service worker guarda el juego y sirve la página sin conexión', async () => {
+  const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+  const handlers = {}, files = new Map();
+  const scope = 'https://istonehn.github.io/istonehn/arcade/';
+  const cache = {
+    async addAll(paths) { for (const file of paths) files.set(file, { ok: true, name: file }); },
+    async put(request, response) { files.set(request.url || request, response); }
+  };
+  const caches = {
+    async open() { return cache; },
+    async keys() { return ['star-run-v3']; },
+    async delete() { return true; },
+    async match(request) { return files.get(request.url || request); }
+  };
+  vm.runInNewContext(sw, {
+    self: { registration: { scope }, location: { origin: 'https://istonehn.github.io' }, clients: { async claim() {} }, async skipWaiting() {}, addEventListener(type, fn) { handlers[type] = fn; } },
+    caches, URL,
+    fetch() { return Promise.reject(new Error('offline')); }
+  });
+  let installation;
+  handlers.install({ waitUntil(promise) { installation = promise; } });
+  await installation;
+  assert.ok(files.has('./index.html'));
+  assert.ok(files.has('./game.js'));
+  let response;
+  handlers.fetch({ request: { url: scope, method: 'GET', mode: 'navigate' }, respondWith(promise) { response = promise; } });
+  assert.equal((await response).name, './index.html');
 });
 
