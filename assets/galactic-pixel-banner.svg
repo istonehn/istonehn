@@ -1,40 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
-  <title id="title">Istonehn — desarrollando Qeubo</title>
-  <desc id="desc">Portada pixel retro de ciencia ficción: estrellas, horizonte oscuro y acentos cian y ámbar.</desc>
-  <rect width="1200" height="320" fill="#090d1d"/>
-  <rect x="12" y="12" width="1176" height="296" fill="none" stroke="#253b59" stroke-width="3"/>
-  <rect x="24" y="24" width="1152" height="272" fill="none" stroke="#17263e" stroke-width="2"/>
-  <g shape-rendering="crispEdges"><rect x="70" y="42" width="4" height="4" fill="#a8d8e8"/>
-  <rect x="142" y="96" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="238" y="28" width="5" height="5" fill="#a8d8e8"/>
-  <rect x="322" y="78" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="438" y="40" width="4" height="4" fill="#a8d8e8"/>
-  <rect x="540" y="104" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="656" y="30" width="4" height="4" fill="#a8d8e8"/>
-  <rect x="742" y="91" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="843" y="45" width="5" height="5" fill="#a8d8e8"/>
-  <rect x="955" y="81" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="1083" y="28" width="4" height="4" fill="#a8d8e8"/>
-  <rect x="1150" y="105" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="104" y="156" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="376" y="142" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="906" y="145" width="3" height="3" fill="#a8d8e8"/>
-  <rect x="1115" y="180" width="4" height="4" fill="#a8d8e8"/></g>
-  <g shape-rendering="crispEdges" fill="#d6a85b">
-    <rect x="985" y="53" width="88" height="8"/><rect x="969" y="61" width="120" height="8"/>
-    <rect x="953" y="69" width="152" height="56"/><rect x="969" y="125" width="120" height="8"/>
-    <rect x="985" y="133" width="88" height="8"/>
-  </g>
-  <g shape-rendering="crispEdges" fill="#111b31">
-    <rect x="953" y="93" width="152" height="8"/><rect x="969" y="109" width="120" height="8"/>
-  </g>
-  <path d="M24 225H1176" stroke="#4ba7b6" stroke-width="3"/>
-  <path d="M24 246H1176M24 273H1176M180 225L93 296M390 225L345 296M600 225V296M810 225L855 296M1020 225L1107 296" stroke="#1f5268" stroke-width="2"/>
-  <rect x="52" y="50" width="14" height="14" fill="#58d1d4"/><rect x="68" y="50" width="14" height="14" fill="#58d1d4"/>
-  <rect x="52" y="66" width="14" height="14" fill="#58d1d4"/><rect x="84" y="66" width="14" height="14" fill="#58d1d4"/>
-  <rect x="52" y="82" width="14" height="14" fill="#58d1d4"/><rect x="68" y="82" width="14" height="14" fill="#58d1d4"/>
-  <text x="62" y="165" fill="#f3f6f8" font-family="Consolas, 'Courier New', monospace" font-size="72" font-weight="700" letter-spacing="7">ISTONEHN</text>
-  <text x="66" y="200" fill="#6ee0d6" font-family="Consolas, 'Courier New', monospace" font-size="22" letter-spacing="3">BUILDING QEUBO · WEB + MOBILE</text>
-  <rect x="58" y="289" width="180" height="5" fill="#d6a85b"/>
-  <rect x="246" y="289" width="56" height="5" fill="#58d1d4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc"><title id="title">Istonehn: Star Run</title><desc id="desc">Portada arcade pixel retro con naves, estrellas y marcador.</desc>
+<rect width="1200" height="320" fill="#060a17"/><rect x="9" y="9" width="1182" height="302" fill="none" stroke="#59d8d5" stroke-width="6"/><rect x="21" y="21" width="1158" height="278" fill="none" stroke="#23374b" stroke-width="2"/>
+<g shape-rendering="crispEdges"><rect x="40" y="40" width="6" height="6" fill="#f5c16c"/><rect x="80" y="70" width="3" height="3" fill="#83dce2"/><rect x="150" y="46" width="3" height="3" fill="#83dce2"/><rect x="242" y="82" width="6" height="6" fill="#83dce2"/><rect x="342" y="43" width="3" height="3" fill="#f5c16c"/><rect x="468" y="68" width="3" height="3" fill="#83dce2"/><rect x="558" y="34" width="6" height="6" fill="#83dce2"/><rect x="700" y="76" width="3" height="3" fill="#83dce2"/><rect x="812" y="42" width="3" height="3" fill="#f5c16c"/><rect x="915" y="75" width="6" height="6" fill="#83dce2"/><rect x="1040" y="38" width="3" height="3" fill="#83dce2"/><rect x="1130" y="86" width="3" height="3" fill="#83dce2"/><rect x="130" y="130" width="6" height="6" fill="#f5c16c"/><rect x="400" y="129" width="3" height="3" fill="#83dce2"/><rect x="770" y="143" width="3" height="3" fill="#83dce2"/><rect x="1105" y="132" width="6" height="6" fill="#83dce2"/></g>
+<g shape-rendering="crispEdges"><rect x="970" y="48" width="18" height="18" fill="#e66b79"/><rect x="1010" y="48" width="18" height="18" fill="#e66b79"/><rect x="948" y="66" width="102" height="18" fill="#e66b79"/><rect x="932" y="84" width="134" height="18" fill="#e66b79"/><rect x="932" y="102" width="24" height="18" fill="#e66b79"/><rect x="975" y="102" width="48" height="18" fill="#e66b79"/><rect x="1042" y="102" width="24" height="18" fill="#e66b79"/><rect x="950" y="120" width="26" height="18" fill="#e66b79"/><rect x="1024" y="120" width="26" height="18" fill="#e66b79"/>
+<rect x="101" y="213" width="28" height="12" fill="#e8faff"/><rect x="86" y="225" width="58" height="12" fill="#5fe0d9"/><rect x="72" y="237" width="86" height="12" fill="#39a6b0"/><rect x="101" y="249" width="28" height="18" fill="#f4bf64"/>
+<rect x="112" y="186" width="6" height="18" fill="#f4bf64"/><rect x="113" y="170" width="4" height="10" fill="#f4bf64"/>
+</g>
+<path d="M35 282h1130" stroke="#28536a" stroke-width="3"/><path d="M260 283l-80 18M480 283l-20 18M720 283l20 18M940 283l80 18" stroke="#204052" stroke-width="2"/>
+<text x="50" y="61" fill="#60deda" font-family="monospace" font-size="20" font-weight="bold" letter-spacing="3">PLAYER 01</text><text x="720" y="61" fill="#f4bf64" font-family="monospace" font-size="20" font-weight="bold" letter-spacing="3">HIGH SCORE 9999</text>
+<text x="215" y="175" fill="#172845" font-family="monospace" font-size="76" font-weight="bold" letter-spacing="6">ISTONEHN</text><text x="210" y="168" fill="#eef9ff" font-family="monospace" font-size="76" font-weight="bold" letter-spacing="6">ISTONEHN</text>
+<rect x="386" y="202" width="427" height="42" fill="#152e43" stroke="#f4bf64" stroke-width="3"/><text x="417" y="231" fill="#f4bf64" font-family="monospace" font-size="25" font-weight="bold" letter-spacing="5">▶ PRESS START</text>
+<g><path d="M0 9h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 29h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 49h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 69h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 89h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 109h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 129h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 149h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 169h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 189h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 209h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 229h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 249h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 269h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/><path d="M0 289h1200" stroke="#ffffff" stroke-opacity=".025" stroke-width="2"/></g></svg>
