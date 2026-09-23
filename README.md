@@ -20,4 +20,4 @@ En computadora me muevo con **flechas o WASD** y disparo con **ESPACIO**. En mó
 
 ## Tecnología
 
-Lo construí con **HTML, CSS y JavaScript**, usando **Canvas** para el juego y un **Service Worker** para que funcione sin conexión después de la primera visita en línea.
+Construido con **HTML, CSS y JavaScript**, usando **Canvas** para el juego y un **Service Worker** para que funcione sin conexión después de la primera visita en línea.
