@@ -70,6 +70,41 @@ test('el laberinto tiene un camino desde el inicio hasta el jefe', () => {
   assert.ok(seen.has('1,7'), 'se puede llegar al pasillo del jefe');
 });
 
+test('la vida extra aparece al perder una vida y nunca supera el máximo', () => {
+  const listeners = {};
+  const elements = Object.fromEntries(['stage', 'timer', 'progress', 'score', 'lives', 'alert', 'start', 'pad'].map(id => [id, {
+    textContent: '', hidden: false, addEventListener() {}, querySelectorAll() { return []; }, blur() {}
+  }]));
+  const drawing = { fillRect() {}, strokeRect() {}, fillText() {} };
+  const canvas = { width: 320, height: 480, getContext() { return drawing; }, addEventListener() {} };
+  const math = Object.create(Math);
+  math.random = () => .5;
+  const instrumented = source.replace('hud(); requestAnimationFrame(frame);',
+    'globalThis.checkLife = { startLevel, hurt, updateExtraLife, get lives() { return lives; }, get extraLife() { return extraLife; }, moveAway() { player.x = 16; }, moveToDrop() { player.x = extraLife.x; player.y = extraLife.y; }, allowDamage() { invulnerable = 0; } }; hud(); requestAnimationFrame(frame);');
+  const sandbox = {
+    document: { querySelector() { return canvas; }, getElementById(id) { return elements[id]; }, addEventListener(type, fn) { listeners[type] = fn; } },
+    window: { addEventListener() {} }, requestAnimationFrame() {},
+    localStorage: { getItem() { return null; }, setItem() {} }, Math: math
+  };
+  vm.runInNewContext(instrumented, sandbox);
+  const game = sandbox.checkLife;
+  game.startLevel(1);
+  game.allowDamage(); game.hurt();
+  assert.equal(game.lives, 2);
+  game.moveAway();
+  for (let i = 0; i < 25; i++) game.updateExtraLife(1);
+  assert.ok(game.extraLife, 'debe aparecer una vida recuperable');
+  game.moveToDrop(); game.updateExtraLife(.016);
+  assert.equal(game.lives, 3);
+  assert.equal(game.extraLife, null);
+  game.updateExtraLife(120);
+  assert.equal(game.extraLife, null, 'no aparecen vidas si el contador está completo');
+  game.startLevel(3);
+  game.allowDamage(); game.hurt();
+  for (let i = 0; i < 25; i++) game.updateExtraLife(1);
+  assert.ok(game.extraLife, 'también debe aparecer en una casilla accesible del laberinto');
+});
+
 test('el service worker guarda el juego y sirve la página sin conexión', async () => {
   const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
   const handlers = {}, files = new Map();
@@ -80,7 +115,7 @@ test('el service worker guarda el juego y sirve la página sin conexión', async
   };
   const caches = {
     async open() { return cache; },
-    async keys() { return ['star-run-v3']; },
+    async keys() { return ['star-run-v4']; },
     async delete() { return true; },
     async match(request) { return files.get(request.url || request); }
   };
@@ -98,4 +133,3 @@ test('el service worker guarda el juego y sirve la página sin conexión', async
   handlers.fetch({ request: { url: scope, method: 'GET', mode: 'navigate' }, respondWith(promise) { response = promise; } });
   assert.equal((await response).name, './index.html');
 });
-

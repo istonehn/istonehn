@@ -28,6 +28,7 @@
   let mode = 'ready', level = 1, score = 0, lives = 3, progress = 0, best = 0;
   let player = { x: W / 2, y: H - 38, facing: { x: 0, y: -1 } };
   let enemies = [], obstacles = [], aliens = [], shots = [], bossShots = [], particles = [];
+  let extraLife = null, lifeDropClock = 0;
   let boss = { x: 250, y: 48, hp: 10, maxHp: 10, t: 0 }, spawnClock = 0, fireClock = 0, bossClock = 0, enemyFireClock = 0, alienClock = 0;
   let invulnerable = 0, transitionClock = 0, touchX = null, touchY = null, lastFrame = 0, elapsed = 0, lastHudSecond = -1, lastDesertAlienAt = -20;
   try { best = Number(localStorage.getItem('star-run-best')) || 0; } catch (_) {}
@@ -50,6 +51,7 @@
   function startLevel(next) {
     level = next; mode = 'playing'; progress = 0; elapsed = 0; lastHudSecond = -1;
     enemies = []; obstacles = []; aliens = []; shots = []; bossShots = []; particles = [];
+    extraLife = null; lifeDropClock = 18 + Math.random() * 14;
     spawnClock = .5; fireClock = 0; bossClock = 1.4; enemyFireClock = .6; alienClock = 5; invulnerable = 1; lastDesertAlienAt = -20;
     player = next === 3 ? { x: 48, y: 432, facing: { x: 0, y: -1 } } : { x: W / 2, y: H - 38, facing: { x: 0, y: -1 } };
     boss = { x: 250, y: 48, hp: 10, maxHp: 10, t: 0 };
@@ -79,6 +81,29 @@
     lives--; invulnerable = 1.35; burst(player.x, player.y, '#68e4df');
     hud();
     if (lives === 0) finish(false);
+  }
+  function updateExtraLife(dt) {
+    lifeDropClock -= dt;
+    if (!extraLife && lives < 3 && lifeDropClock <= 0) {
+      if (level === 3) {
+        const options = [];
+        for (let row = 1; row < maze.length - 1; row++) for (let col = 1; col < 9; col++) {
+          const x = col * CELL + CELL / 2, y = row * CELL + CELL / 2;
+          const distance = Math.hypot(x - player.x, y - player.y);
+          if (canMove(x, y) && distance > 24 && distance < 100) options.push({ x, y });
+        }
+        const spot = options[Math.floor(Math.random() * options.length)];
+        if (spot) extraLife = { ...spot, ttl: 12 };
+      } else extraLife = { x: 24 + Math.random() * (W - 48), y: 282, ttl: 12 };
+      lifeDropClock = 26 + Math.random() * 18;
+    }
+    if (!extraLife) return;
+    extraLife.ttl -= dt;
+    if (level !== 3) extraLife.y = Math.min(H - 36, extraLife.y + 42 * dt);
+    if (collide(extraLife, player, 18)) {
+      lives = Math.min(3, lives + 1); score += 25;
+      burst(extraLife.x, extraLife.y, '#f18ca0'); extraLife = null; hud();
+    } else if (extraLife.ttl <= 0) extraLife = null;
   }
   function wall(x, y) {
     const col = Math.floor(x / CELL), row = Math.floor(y / CELL);
@@ -234,6 +259,7 @@
     invulnerable = Math.max(0, invulnerable - dt);
     fireClock -= dt;
     movePlayer(dt);
+    updateExtraLife(dt);
     if (keys.has(' ') || (touchX !== null && level !== 3)) fire();
     for (const shot of shots) {
       shot.x += shot.vx * dt; shot.y += shot.vy * dt;
@@ -296,6 +322,11 @@
       pixel(alien.x - 6, alien.y - 4, 4, 4, '#152e32'); pixel(alien.x + 2, alien.y - 4, 4, 4, '#152e32');
       pixel(alien.x - 12, alien.y + 5, 6, 5, '#5d9c64'); pixel(alien.x + 6, alien.y + 5, 6, 5, '#5d9c64');
     }
+    if (extraLife) {
+      pixel(extraLife.x - 11, extraLife.y - 9, 22, 18, '#f18ca0');
+      pixel(extraLife.x - 3, extraLife.y - 4, 6, 12, '#162438');
+      pixel(extraLife.x - 7, extraLife.y, 14, 4, '#162438');
+    }
     for (const bolt of bossShots) pixel(bolt.x - 3, bolt.y - 3, 6, 6, '#ef7990');
     for (const shot of shots) pixel(shot.x - 2, shot.y - 5, 4, 10, '#f1c46e');
     for (const p of particles) pixel(p.x, p.y, 3, 3, p.color);
@@ -341,4 +372,3 @@
   ui.start.addEventListener('click', startCampaign);
   hud(); requestAnimationFrame(frame);
 })();
-
