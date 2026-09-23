@@ -5,7 +5,7 @@
 
   <br><br>
 
-  <code>PLAYER 01</code> &nbsp; <code>VENEZUELA</code> &nbsp; <code>BUILD MODE: ON</code>
+  <code>PLAYER 01</code> &nbsp; <code>BUILD MODE: ON</code>
 
   <h2>Hola, soy Istonehn 👾</h2>
 
